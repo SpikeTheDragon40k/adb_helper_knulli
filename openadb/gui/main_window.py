@@ -167,7 +167,7 @@ class MainWindow(QMainWindow):
         m = mb.addMenu(tr("&Help"))
         m.addAction(tr("Keyboard shortcuts"), self.show_shortcuts)
         m.addAction(tr("Troubleshooting"), lambda: QDesktopServices.openUrl(
-            QUrl("https://github.com/SpikeTheDragon40k/adb_helper_knulli/blob/claude/adb-file-manager-linux-kzzhjb/docs/TROUBLESHOOTING.md")))
+            QUrl("https://github.com/SpikeTheDragon40k/adb_helper_knulli/blob/main/docs/TROUBLESHOOTING.md")))
         m.addAction(tr("About"), self.show_about)
 
     def _build_status(self) -> None:
