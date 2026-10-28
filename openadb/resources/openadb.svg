@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f80ed"/>
+      <stop offset="1" stop-color="#1b4fa8"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd166"/>
+      <stop offset="1" stop-color="#f4a623"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg)"/>
+  <!-- folder -->
+  <path d="M40 92c0-8 6-14 14-14h40l14 14h56c8 0 14 6 14 14v70c0 8-6 14-14 14H54c-8 0-14-6-14-14z" fill="url(#fold)"/>
+  <!-- handheld -->
+  <rect x="146" y="120" width="72" height="96" rx="12" fill="#1f2937" stroke="#ffffff" stroke-width="5"/>
+  <rect x="156" y="131" width="52" height="36" rx="4" fill="#7dd3fc"/>
+  <circle cx="200" cy="190" r="6" fill="#ef4444"/>
+  <path d="M164 184h16M172 176v16" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  <!-- transfer arrows -->
+  <path d="M70 136h52m-14-14 14 14-14 14" fill="none" stroke="#1b4fa8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
