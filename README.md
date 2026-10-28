@@ -215,13 +215,6 @@ openadb/
 - Windows support is architected for (no POSIX-only calls in the core besides the optional PTY) but
   has not been tested.
 
-## Support the project
-
-If OpenADB File Manager is useful to you, you can support its development:
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/spikethedragon)
-<a href="https://buymeacoffee.com/spike_the_dragon"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="36"></a>
-
 ## AI assistance disclosure
 
 This project was developed with the assistance of Claude Opus 5.5 (Anthropic), which helped write
