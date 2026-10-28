@@ -1,7 +1,7 @@
 # Maintainer: SpikeTheDragon40k
 # Local build from a checkout:  cd packaging/arch && makepkg -si
 pkgname=openadb-file-manager
-pkgver=0.1.0
+pkgver=1.0.0
 pkgrel=1
 pkgdesc="Dual-pane ADB file manager for Android and Linux devices such as Knulli handhelds"
 arch=('any')

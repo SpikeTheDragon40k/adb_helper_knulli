@@ -5,6 +5,6 @@ daemon (for example Knulli-based handhelds) without requiring any Android
 framework service.
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 APP_NAME = "OpenADB File Manager"
 APP_ID = "openadb"

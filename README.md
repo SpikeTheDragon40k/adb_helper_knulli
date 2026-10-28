@@ -76,7 +76,7 @@ Other options:
 
 - **Per-user install** (venv + menu entry, no root): `./scripts/install-user.sh`
 - **Arch package**: `cd packaging/arch && makepkg -si` (uses the system `pyside6` and `android-tools`)
-- **AppImage**: `./packaging/appimage/build-appimage.sh` → `dist/OpenADB_File_Manager-0.1.0-x86_64.AppImage`
+- **AppImage**: `./packaging/appimage/build-appimage.sh` → `dist/OpenADB_File_Manager-1.0.0-x86_64.AppImage`
 
 ## Building the AppImage
 
