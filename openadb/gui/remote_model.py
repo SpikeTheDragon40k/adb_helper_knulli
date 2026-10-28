@@ -73,6 +73,15 @@ def decode_remote_mime(md: QMimeData) -> tuple[str, list[str]] | None:
         return None
 
 
+def refilter(proxy: QSortFilterProxyModel) -> None:
+    """Re-run filtering (Qt >= 6.9 deprecates invalidateFilter in favour of begin/endFilterChange)."""
+    if hasattr(proxy, "beginFilterChange"):
+        proxy.beginFilterChange()
+        proxy.endFilterChange()
+    else:
+        proxy.invalidateFilter()
+
+
 class RemoteModel(QAbstractTableModel):
     def __init__(self, parent: Any = None) -> None:
         super().__init__(parent)
@@ -180,7 +189,7 @@ class RemoteProxy(QSortFilterProxyModel):
 
     def set_filter(self, text: str, show_hidden: bool) -> None:
         self.text, self.show_hidden = text.lower(), show_hidden
-        self.invalidateFilter()
+        refilter(self)
 
     def filterAcceptsRow(self, row: int, parent: QModelIndex | QPersistentModelIndex) -> bool:  # noqa: N802
         model = self.sourceModel()

@@ -1,0 +1,33 @@
+# Maintainer: SpikeTheDragon40k
+# Local build from a checkout:  cd packaging/arch && makepkg -si
+pkgname=openadb-file-manager
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Dual-pane ADB file manager for Android and Linux devices such as Knulli handhelds"
+arch=('any')
+url="https://github.com/SpikeTheDragon40k/adb_helper_knulli"
+license=('MIT')
+depends=('python' 'pyside6' 'android-tools')
+makedepends=('python-build' 'python-installer' 'python-setuptools' 'python-wheel')
+checkdepends=('python-pytest' 'python-pytest-qt')
+
+_srcroot() { realpath "$startdir/../.."; }
+
+build() {
+  cd "$(_srcroot)"
+  python -m build --wheel --no-isolation --outdir "$srcdir/dist"
+}
+
+check() {
+  cd "$(_srcroot)"
+  QT_QPA_PLATFORM=offscreen python -m pytest -q tests
+}
+
+package() {
+  cd "$(_srcroot)"
+  python -m installer --destdir="$pkgdir" "$srcdir"/dist/*.whl
+  install -Dm644 packaging/io.github.openadb.FileManager.desktop \
+    "$pkgdir/usr/share/applications/io.github.openadb.FileManager.desktop"
+  install -Dm644 openadb/resources/openadb.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/openadb.svg"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

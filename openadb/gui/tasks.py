@@ -44,6 +44,10 @@ class TaskRunner(QObject):
                 self._finished.emit(on_done, on_error, result, None)
             return result
 
+        if self._closed:
+            fut: Future[Any] = Future()
+            fut.cancel()
+            return fut
         return self._pool.submit(job)
 
     @Slot(object, object, object, object)

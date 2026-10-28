@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=OpenADB File Manager
+GenericName=ADB File Manager
+Comment=Manage files on Android and Linux devices (e.g. Knulli handhelds) over ADB
+Exec=openadb %U
+Icon=openadb
+Terminal=false
+Categories=Utility;FileManager;Qt;
+Keywords=adb;android;knulli;batocera;anbernic;rom;
+StartupWMClass=openadb

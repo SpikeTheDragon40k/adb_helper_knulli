@@ -1,6 +1,4 @@
-import hashlib
 import os
-import threading
 import time
 
 import pytest

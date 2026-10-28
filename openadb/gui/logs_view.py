@@ -53,6 +53,15 @@ def _details(ev: LogEvent) -> str:
     return " · ".join(parts)
 
 
+def refilter(proxy: QSortFilterProxyModel) -> None:
+    """Re-run filtering (Qt >= 6.9 deprecates invalidateFilter in favour of begin/endFilterChange)."""
+    if hasattr(proxy, "beginFilterChange"):
+        proxy.beginFilterChange()
+        proxy.endFilterChange()
+    else:
+        proxy.invalidateFilter()
+
+
 class LogModel(QAbstractTableModel):
     def __init__(self) -> None:
         super().__init__()
@@ -138,7 +147,7 @@ class LogFilter(QSortFilterProxyModel):
 
     def update(self, min_level: Level, text: str, device: str, op_type: str) -> None:
         self.min_level, self.text, self.device, self.op_type = min_level, text.lower(), device, op_type
-        self.invalidateFilter()
+        refilter(self)
 
     def filterAcceptsRow(self, row: int, parent: QModelIndex | QPersistentModelIndex) -> bool:  # noqa: N802
         ev: LogEvent = self.sourceModel().events[row]  # type: ignore[attr-defined]

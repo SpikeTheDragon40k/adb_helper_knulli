@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 
 from PySide6.QtCore import QByteArray, Qt, QTimer, QUrl
 from PySide6.QtGui import QCloseEvent, QDesktopServices, QKeySequence
@@ -168,7 +167,7 @@ class MainWindow(QMainWindow):
         m = mb.addMenu(tr("&Help"))
         m.addAction(tr("Keyboard shortcuts"), self.show_shortcuts)
         m.addAction(tr("Troubleshooting"), lambda: QDesktopServices.openUrl(
-            QUrl.fromLocalFile(os.path.join(os.path.dirname(__file__), "..", "..", "docs", "TROUBLESHOOTING.md"))))
+            QUrl("https://github.com/SpikeTheDragon40k/adb_helper_knulli/blob/claude/adb-file-manager-linux-kzzhjb/docs/TROUBLESHOOTING.md")))
         m.addAction(tr("About"), self.show_about)
 
     def _build_status(self) -> None:

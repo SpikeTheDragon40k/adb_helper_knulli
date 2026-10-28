@@ -56,6 +56,7 @@ class RemotePane(QWidget):
         self.forward_stack: list[str] = []
         self._generation = 0
         self._loading = False
+        self._last_dir: dict[str, str] = {}
 
         self.model = RemoteModel(self)
         self.proxy = RemoteProxy(self)
@@ -208,7 +209,7 @@ class RemotePane(QWidget):
             self.back_stack.clear()
             self.forward_stack.clear()
             self.cwd = ""
-            self.navigate(self.ctx.settings.remote_home(serial), record=False)
+            self.navigate(self._last_dir.get(serial) or self.ctx.settings.remote_home(serial), record=False)
         else:
             self.refresh()
 
@@ -293,6 +294,7 @@ class RemotePane(QWidget):
                 self.back_stack.append(prev)
                 self.forward_stack.clear()
             self.cwd = path
+            self._last_dir[serial] = path  # type: ignore[index]
             self.model.set_entries(serial, path, entries)  # type: ignore[arg-type]
             self.path_bar.set_path(path)
             self.stack.setCurrentWidget(self.view)
@@ -396,7 +398,7 @@ class RemotePane(QWidget):
                     first = first or idx
         if first is not None:
             self.view.scrollTo(first)
-            self.view.setCurrentIndex(first)
+            sm.setCurrentIndex(first, sm.SelectionFlag.NoUpdate)
 
     def _update_info(self) -> None:
         if not self.cwd:

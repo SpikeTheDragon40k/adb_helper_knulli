@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openadb-file-manager"
+version = "0.1.0"
+description = "Dual-pane file manager for ADB devices, including non-Android Linux handhelds (Knulli)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "SpikeTheDragon40k" }]
+keywords = ["adb", "file manager", "knulli", "batocera", "anbernic", "qt"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Environment :: X11 Applications :: Qt",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: System :: Filesystems",
+]
+dependencies = ["PySide6-Essentials>=6.5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.5", "mypy>=1.10", "build"]
+
+[project.scripts]
+openadb = "openadb.app:main"
+
+[tool.setuptools.packages.find]
+include = ["openadb*"]
+
+[tool.setuptools.package-data]
+openadb = ["resources/*", "i18n/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+markers = ["device: needs a real ADB device (opt-in, see tests/integration)"]
+
+[tool.ruff]
+line-length = 170
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
