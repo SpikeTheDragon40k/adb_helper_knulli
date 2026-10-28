@@ -1,0 +1,254 @@
+#!/usr/bin/env python3
+"""Mock ``adb`` client used by the automated test suite.
+
+It emulates a small subset of the real client against "devices" that are plain
+directories on the host. Device behaviour is described by a JSON state file
+pointed to by ``OPENADB_MOCK_STATE`` (see ``tests/mock_adb/mockdevice.py``).
+
+Remote shell commands are executed with the host's ``/bin/sh`` using a
+restricted ``PATH`` (no ``getprop``) and a fake ``uname``. Absolute device
+paths are mapped into the device root directory by textual substitution of the
+known top-level directory names, which is sufficient for the test fixtures.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+
+def load_state() -> dict:
+    with open(os.environ["OPENADB_MOCK_STATE"], encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def save_state(state: dict) -> None:
+    path = os.environ["OPENADB_MOCK_STATE"]
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(state, fh)
+    os.replace(tmp, path)
+
+
+def log_call(argv: list[str]) -> None:
+    log = os.environ.get("OPENADB_MOCK_LOG")
+    if log:
+        with open(log, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(argv) + "\n")
+
+
+def die(msg: str, code: int = 1) -> None:
+    sys.stderr.write(msg + "\n")
+    sys.exit(code)
+
+
+def select_device(state: dict, serial: str | None) -> dict:
+    devices = state["devices"]
+    if serial is None:
+        if not devices:
+            die("adb: no devices/emulators found")
+        if len(devices) > 1:
+            die("adb: more than one device/emulator")
+        dev = devices[0]
+    else:
+        matches = [d for d in devices if d["serial"] == serial]
+        if not matches:
+            die(f"adb: device '{serial}' not found")
+        dev = matches[0]
+    if dev["state"] == "offline":
+        die("adb: device offline")
+    if dev["state"] == "unauthorized":
+        die("adb: device unauthorized.\nThis adb server's $ADB_VENDOR_KEYS is not set\nTry 'adb kill-server' if that seems wrong.")
+    return dev
+
+
+def to_host(dev: dict, text: str) -> str:
+    root = dev["root"]
+    tops = sorted((n for n in os.listdir(root) if not n.startswith(".")), key=len, reverse=True)
+    for top in tops:
+        text = re.sub(r"(?<![\w./-])/" + re.escape(top) + r"(?=[/'\"\s;)|&]|$)", lambda m: root + "/" + top, text)
+    text = re.sub(r"(?<![\w./-])/(?=['\"\s;)|&]|$)", lambda m: root + "/", text)
+    return text
+
+
+def from_host(dev: dict, data: bytes) -> bytes:
+    root = dev["root"].encode()
+    data = data.replace(root + b"/", b"/")
+    return data.replace(root, b"/")
+
+
+def device_path(dev: dict, remote: str) -> str:
+    if not remote.startswith("/"):
+        remote = "/" + remote
+    return dev["root"] + remote
+
+
+def cmd_shell(dev: dict, args: list[str]) -> None:
+    if dev.get("shell_broken"):
+        die("error: closed")
+    command = " ".join(args)
+    env = {"PATH": os.path.join(dev["root"], ".mockbin"), "HOME": dev["root"] + "/userdata", "LANG": "C.UTF-8",
+           "MOCK_UNAME_A": dev.get("uname_a", "Linux KNULLI 4.9.170 aarch64 GNU/Linux")}
+    host_cmd = to_host(dev, command)
+    proc = subprocess.run(["/bin/sh", "-c", host_cmd], env=env, cwd=dev["root"], capture_output=True,
+                          timeout=dev.get("shell_timeout", 300))
+    out, err = from_host(dev, proc.stdout), from_host(dev, proc.stderr)
+    if dev.get("pty_mode"):
+        merged = (out + err).replace(b"\n", b"\r\n")
+        sys.stdout.buffer.write(merged)
+        sys.stdout.flush()
+        sys.exit(0)
+    sys.stdout.buffer.write(out)
+    sys.stderr.buffer.write(err)
+    sys.stdout.flush()
+    sys.exit(proc.returncode)
+
+
+def copy_with_progress(dev: dict, src: str, dst: str, label: str, verb: str) -> int:
+    rate = dev.get("rate")  # bytes per second or None
+    fail_after = dev.get("fail_after_bytes")
+    corrupt = dev.get("corrupt_" + verb)
+    tty = sys.stdout.isatty()
+    total = os.path.getsize(src)
+    done = 0
+    chunk = 64 * 1024 if not rate else max(1024, int(rate) // 10)
+    with open(src, "rb") as fi, open(dst, "wb") as fo:
+        while True:
+            buf = fi.read(chunk)
+            if not buf:
+                break
+            if corrupt and done == 0:
+                buf = bytes([buf[0] ^ 0xFF]) + buf[1:]
+            fo.write(buf)
+            fo.flush()
+            done += len(buf)
+            if fail_after is not None and done >= fail_after:
+                state = load_state()
+                for d in state["devices"]:
+                    if d["serial"] == dev["serial"]:
+                        d["state"] = "offline" if dev.get("disconnect_on_fail") else d["state"]
+                save_state(state)
+                die(f"adb: error: failed to copy '{src}' to '{label}': connection reset", 1)
+            if tty and total:
+                pct = int(done * 100 / total)
+                sys.stdout.write(f"\r\x1b[K[{pct:3d}%] {label}")
+                sys.stdout.flush()
+            if rate:
+                time.sleep(len(buf) / float(rate))
+    return done
+
+
+def transfer(dev: dict, verb: str, src: str, dst: str) -> None:
+    if dev.get("fail_" + verb):
+        die(f"adb: error: failed to copy '{src}' to '{dst}': remote couldn't create file: Permission denied")
+    start = time.monotonic()
+    files = 0
+    total = 0
+    if verb == "push":
+        host_src, host_dst, label_dst = src, device_path(dev, dst), dst
+        if not os.path.exists(host_src):
+            die(f"adb: error: cannot stat '{src}': No such file or directory")
+    else:
+        host_src, host_dst, label_dst = device_path(dev, src), dst, src
+        if not os.path.lexists(host_src):
+            die(f"adb: error: failed to stat remote object '{src}': No such file or directory")
+    if os.path.isdir(host_dst) and not os.path.isdir(host_src):
+        host_dst = os.path.join(host_dst, os.path.basename(host_src))
+    if os.path.isdir(host_src):
+        if os.path.isdir(host_dst):
+            host_dst = os.path.join(host_dst, os.path.basename(host_src.rstrip("/")))
+        for base, _dirs, names in os.walk(host_src):
+            rel = os.path.relpath(base, host_src)
+            os.makedirs(os.path.join(host_dst, rel), exist_ok=True)
+            for n in names:
+                total += copy_with_progress(dev, os.path.join(base, n), os.path.join(host_dst, rel, n), label_dst, verb)
+                files += 1
+    else:
+        os.makedirs(os.path.dirname(host_dst) or ".", exist_ok=True)
+        total += copy_with_progress(dev, host_src, host_dst, label_dst, verb)
+        files += 1
+    elapsed = max(time.monotonic() - start, 0.001)
+    if sys.stdout.isatty():
+        sys.stdout.write("\r\x1b[K")
+    word = "pushed" if verb == "push" else "pulled"
+    sys.stdout.write(f"{src}: {files} file{'s' if files != 1 else ''} {word}, 0 skipped. "
+                     f"{total / elapsed / 1e6:.1f} MB/s ({total} bytes in {elapsed:.3f}s)\n")
+    sys.stdout.flush()
+
+
+def main() -> None:
+    argv = sys.argv[1:]
+    log_call(argv)
+    serial = None
+    while argv and argv[0] in ("-s", "-H", "-P", "-t"):
+        if argv[0] == "-s":
+            serial = argv[1]
+        argv = argv[2:]
+    if not argv:
+        die("adb: usage: no command")
+    state = load_state()
+    cmd, args = argv[0], argv[1:]
+    if cmd == "version":
+        print(state.get("version", "Android Debug Bridge version 1.0.41\nVersion 35.0.2-mock\nInstalled as mock\n"))
+        return
+    if cmd in ("start-server", "kill-server", "reconnect"):
+        return
+    if cmd == "devices":
+        print("List of devices attached")
+        for d in state["devices"]:
+            attrs = d.get("attrs", "")
+            if "-l" in args:
+                print(f"{d['serial']:<22} {d['state']} {attrs}".rstrip())
+            else:
+                print(f"{d['serial']}\t{d['state']}")
+        print()
+        return
+    if cmd == "connect":
+        target = args[0] if args else ""
+        if ":" not in target:
+            target += ":5555"
+        if any(d["serial"] == target for d in state["devices"]):
+            print(f"already connected to {target}")
+            return
+        candidate = state.get("connectable", {}).get(target)
+        if candidate is None:
+            print(f"failed to connect to '{target}': Connection refused")
+            sys.exit(1)
+        state["devices"].append(candidate)
+        save_state(state)
+        print(f"connected to {target}")
+        return
+    if cmd == "disconnect":
+        target = args[0] if args else None
+        before = len(state["devices"])
+        state["devices"] = [d for d in state["devices"] if target is not None and d["serial"] != target]
+        save_state(state)
+        if len(state["devices"]) == before:
+            die(f"error: no such device '{target}'")
+        print(f"disconnected {target}")
+        return
+    dev = select_device(state, serial)
+    if cmd == "get-state":
+        print(dev["state"])
+    elif cmd == "get-serialno":
+        print(dev["serial"])
+    elif cmd == "features":
+        print(dev.get("features", "shell_v2,cmd,stat_v2,ls_v2,fixed_push_mkdir,apex,abb,fixed_push_symlink_timestamp"))
+    elif cmd == "shell":
+        cmd_shell(dev, args)
+    elif cmd in ("push", "pull"):
+        if len(args) < 2:
+            die(f"adb: usage: {cmd} SRC DST")
+        transfer(dev, cmd, args[0], args[1])
+    elif cmd == "reboot":
+        print("")
+    else:
+        die(f"adb: unknown command {cmd}")
+
+
+if __name__ == "__main__":
+    main()
