@@ -1,5 +1,8 @@
 # OpenADB File Manager
 
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20me-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/spikethedragon)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20me-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/spike_the_dragon)
+
 A dual-pane desktop file manager (Python + PySide6/Qt 6) for devices reachable through
 **Android Debug Bridge**, including devices that run an ADB daemon but are **not Android** —
 for example the Anbernic RG35XX SP running **Knulli**.
@@ -211,6 +214,13 @@ openadb/
 - No translations are shipped yet (the UI is translation-ready).
 - Windows support is architected for (no POSIX-only calls in the core besides the optional PTY) but
   has not been tested.
+
+## Support the project
+
+If OpenADB File Manager is useful to you, you can support its development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/spikethedragon)
+<a href="https://buymeacoffee.com/spike_the_dragon"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="36"></a>
 
 ## AI assistance disclosure
 
