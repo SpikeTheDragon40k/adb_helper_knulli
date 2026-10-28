@@ -192,6 +192,12 @@ openadb/
 
 ## Known limitations
 
+- **Only one Knulli handheld can be connected at a time.** Many Knulli devices (in particular the
+  Allwinner-based Anbernic handhelds such as the RG35XX family) report the same factory ADB serial,
+  `0123456789`. ADB selects a device by its serial (`adb -s SERIAL …`), so when two devices with the
+  same serial are connected simultaneously, commands and transfers cannot be routed to the right
+  one. Connect one handheld at a time (USB or network). Devices with distinct serials can still be
+  connected together.
 - Byte-level resume is not implemented: a retried transfer starts its files from the beginning.
   Cancelled transfers may leave a partial destination file; it is reported and can be removed from
   the Transfers tab.
