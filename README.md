@@ -212,6 +212,12 @@ openadb/
 - Windows support is architected for (no POSIX-only calls in the core besides the optional PTY) but
   has not been tested.
 
+## AI assistance disclosure
+
+This project was developed with the assistance of Claude Opus 5.5 (Anthropic), which helped write
+the code, the test suite and the documentation, and supported testing during development.
+All changes were reviewed, tested on real hardware and published by the maintainer.
+
 ## License
 
 MIT
